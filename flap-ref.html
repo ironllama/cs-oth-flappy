@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flap</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        html,
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            /* outline: 1px solid red; */
+            font-family: 'Press Start 2P', sans-serif;
+        }
+
+        #header {
+            width: 100%;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        #scores {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3em;
+        }
+
+        #scores>div {
+            font-size: 0.6em;
+            width: 8em;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <div id="title">FlapJack</div>
+        <div id="scores">
+            <div>Best: <span id="bestScore">0</span>
+            </div>
+            <div>Your: <span id="currentScore">0</span>
+            </div>
+        </div>
+    </div>
+    <canvas id="canvas" width="431" height="768"></canvas>
+
+    <script>
+        const birdWidth = 51;
+        const birdHeight = 36;
+        const birdStartX = 50;
+        const gravity = 3;
+        const antiGravity = 3;
+        const flapHeight = 55;
+        const flapDuration = 10;
+
+        const pipeWidth = 78;
+        const pipeHeight = 480;
+        // const pipeGap = birdHeight * 3;  // HARD MODE.
+        const pipeGap = birdHeight * 5;
+        const pipeYOffset = 200;
+        const pipeSpeed = 2;
+
+        let flapCount;
+        let flyHeight;
+
+        let currScore = 0;
+        let bestScore = 0;
+
+        let running = false;
+
+        // let pipeXPos = canvas.width;  // TODO: Rename to pipeXPos
+        // let pipeXPos2 = canvas.width + ((canvas.width / 2) + (pipeWidth / 2));
+        // let pipeYUpper = getNewPipeYUpper();  // TODO: Rename var to pipeYUpper and function to getNewPipeYUpper
+        // let pipeYUpper2 = getNewPipeYUpper();
+
+        // let pipeXY = [
+        //     [pipeXPos, pipeYUpper],
+        //     [pipeXPos2, pipeYUpper2],
+        // ];
+
+        let pipeXY;
+
+        function getNewPipeYUpper() {
+            return (- Math.round(Math.random() * pipeGap));  // Then get random amount for the gap. Maybe also limit so pipes don't gap at top and bottom.
+        }
+
+        function setup() {
+            flapCount = 10;
+            flyHeight = (canvas.height / 2) - (birdHeight / 2);
+
+            currScore = 0;
+
+            pipeXY = [
+                [canvas.width, getNewPipeYUpper()],
+                [canvas.width + ((canvas.width / 2) + (pipeWidth / 2)), getNewPipeYUpper()],
+                false
+            ];
+        }
+
+        function loop() {
+            // Background
+            ctx.drawImage(img,
+                0, 0,
+                canvas.width, 768,
+                0, 0,
+                canvas.width, canvas.height
+            );
+
+            if (running) {
+                // Bird flight
+                if (flapCount < flapDuration) {
+                    if (flyHeight > 0) {
+                        flyHeight -= antiGravity;
+                    }
+                    flapCount++;
+                }
+                else if (flyHeight < canvas.height - birdHeight) {
+                    flyHeight += gravity;
+                }
+            }
+            // Bird
+            ctx.drawImage(img,
+                canvas.width + 1, 0,
+                birdWidth, birdHeight,
+                birdStartX, flyHeight,
+                birdWidth, birdHeight
+            );
+
+            let collision = false;
+            for (let i = 0; i < pipeXY.length; i++) {
+                // You can also just use the pipeXY[i][n] everywhere and you can avoid saving at the end. But it's ugly?
+                let xPos = pipeXY[i][0];
+                let yPos = pipeXY[i][1];
+                let pipeCleared = pipeXY[i][2];
+
+                // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
+                if (running) {
+                    if (xPos > -pipeWidth) {
+                        xPos -= pipeSpeed;
+                    }
+                    else {
+                        xPos = canvas.width;
+                        yPos = getNewPipeYUpper();
+                        pipeCleared = false;
+                    }
+                }
+                // Upper pipe
+                ctx.drawImage(img,
+                    canvas.width + 1, (birdHeight * 3) + 1,
+                    pipeWidth, pipeHeight,
+                    xPos, yPos,
+                    pipeWidth, pipeHeight
+                );
+                // Lower pipe
+                let lowerPipeYPos = pipeHeight + pipeGap + yPos;
+                ctx.drawImage(img,
+                    canvas.width + pipeWidth + 1, (birdHeight * 3) + 1,
+                    pipeWidth, pipeHeight,
+                    xPos, pipeHeight + pipeGap + yPos,
+                    pipeWidth, pipeHeight
+                );
+
+                // Collision
+                if (xPos < birdStartX + birdWidth) {
+                    if ((flyHeight + birdHeight) > lowerPipeYPos || flyHeight < (yPos + pipeHeight)) {
+                        console.log("COLLISION!");
+                        collision = true;
+                    }
+                }
+
+                // Score
+                if (!pipeCleared && (xPos + pipeWidth) < birdStartX) {
+                    // console.log("CLEAR!");
+                    pipeCleared = true;
+                    currScore += 1;
+                    currentScore.innerHTML = currScore;
+                }
+
+                // Rewrite/save these values after changing them!
+                pipeXY[i][0] = xPos;
+                pipeXY[i][1] = yPos;
+                pipeXY[i][2] = pipeCleared;
+            }
+
+            if (collision) {
+                running = false;
+            };
+
+            window.requestAnimationFrame(loop);
+        }
+
+        setup();
+
+        let ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = "flappy-bird-set.png";
+        img.onload = loop;
+
+        // Hitting the spacebar will make the bird flap.
+        window.onkeydown = function (evt) {
+            if (evt.code == "Space") {
+                if (flyHeight > 0) flapCount = 0;
+            }
+            if (evt.code == "KeyS") {
+                setup();
+                running = true;
+            }
+        }
+
+    </script>
+</body>
+
+</html>
