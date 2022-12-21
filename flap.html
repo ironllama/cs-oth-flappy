@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -8,7 +9,8 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-        html, body {
+        html,
+        body {
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -17,6 +19,7 @@
             /* outline: 1px solid red; */
             font-family: 'Press Start 2P', sans-serif;
         }
+
         #header {
             width: 100%;
             text-align: center;
@@ -24,6 +27,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="header">
         <div id="title">FlapJack</div>
@@ -31,35 +35,35 @@
     <canvas id="canvas" width="431" height="768"></canvas>
 
     <script>
-        // function setup() { }
         const birdWidth = 51;
         const birdHeight = 36;
         const birdStartX = 50;
-        const pipeWidth = 78;
-        const pipeHeight = 480;
-        const pipeGap = birdHeight * 3;
-        const pipeYOffset = 200;
-
         const gravity = 3;
         const antiGravity = 3;
         const flapHeight = 55;
         const flapDuration = 10;
 
+        const pipeWidth = 78;
+        const pipeHeight = 480;
+        // const pipeGap = birdHeight * 3;  // HARD MODE.
+        const pipeGap = birdHeight * 5;
+        const pipeYOffset = 200;
         const pipeSpeed = 2;
 
         let flapCount = 10;
         let flyHeight = (canvas.height / 2) - (birdHeight / 2);
-        let pipePos = canvas.width;
+
+        let pipePos = canvas.width;  // TODO: Rename to pipePosX OR considate for easier loop handling
         let pipePos2 = canvas.width + ((canvas.width / 2) + (pipeWidth / 2));
-        let pipeYCenter = getNewPipeYCenter();
+        let pipeYCenter = getNewPipeYCenter();  // TODO: Rename var to pipeYUpper and function to getNewPipeYUpper OR consolidate
         let pipeYCenter2 = getNewPipeYCenter();
 
         function getNewPipeYCenter() {
             return (
-                (canvas.height / 2)
-                - Math.round(Math.random() * pipeYOffset)
+                (canvas.height / 2)  // TODO: Remove first and last operands -- they cancel out and are just noise.
+                - Math.round(Math.random() * pipeGap)  // Then get random amount for the gap.
                 - pipeHeight
-                );
+            );
         }
 
         function loop() {
@@ -89,11 +93,12 @@
                 birdWidth, birdHeight
             );
 
+            // TODO: Combine pipes for less copy/paste/etc. Maybe loop?
+            // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
             if (pipePos > -pipeWidth) {
                 pipePos -= pipeSpeed;
             }
             else {
-                // Reset pipe 1
                 pipePos = canvas.width;
                 pipeYCenter = getNewPipeYCenter();
             }
@@ -112,11 +117,11 @@
                 pipeWidth, pipeHeight
             );
 
+            // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
             if (pipePos2 > -pipeWidth) {
                 pipePos2 -= pipeSpeed;
             }
             else {
-                // Reset pipe2
                 pipePos2 = canvas.width;
                 pipeYCenter2 = getNewPipeYCenter();
             }
@@ -143,7 +148,8 @@
         img.src = "flappy-bird-set.png";
         img.onload = loop;
 
-        window.onkeydown = function(evt) {
+        // Hitting the spacebar will make the bird flap.
+        window.onkeydown = function (evt) {
             if (evt.code == "Space") {
                 if (flyHeight > 0) flapCount = 0;
             }
@@ -151,4 +157,5 @@
 
     </script>
 </body>
+
 </html>
