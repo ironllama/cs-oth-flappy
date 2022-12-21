@@ -143,19 +143,19 @@
 
                 // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
                 // if (running) {
-                    if (xPos > -pipeWidth) {
-                        xPos -= pipeSpeed;
+                if (xPos > -pipeWidth) {
+                    xPos -= pipeSpeed;
+                }
+                else {
+                    xPos = canvas.width;
+                    yPos = getNewPipeYPos();
+                    currScore += 1;
+                    yourScore.innerHTML = currScore;
+                    if (currScore > bestScoreSoFar) {
+                        bestScoreSoFar = currScore;
+                        bestScore.innerHTML = bestScoreSoFar;
                     }
-                    else {
-                        xPos = canvas.width;
-                        yPos = getNewPipeYPos();
-                        currScore += 1;
-                        yourScore.innerHTML = currScore;
-                        if (currScore > bestScoreSoFar) {
-                            bestScoreSoFar = currScore;
-                            bestScore.innerHTML = bestScoreSoFar;
-                        }
-                    }
+                }
                 // }
                 // Upper pipe
                 ctx.drawImage(img,
@@ -180,9 +180,8 @@
                 }
 
                 // Collision?
-                if (xPos < birdStartX + birdWidth) {
-                    if (yPos + pipeHeight > flyHeight || lowerPipeTop < flyHeight + birdHeight)
-                    {
+                if (xPos < birdStartX + birdWidth && xPos + pipeWidth > birdStartX) {
+                    if (yPos + pipeHeight > flyHeight || lowerPipeTop < flyHeight + birdHeight) {
                         // console.log("COLLISION!");
                         // setup();
                         running = false;
