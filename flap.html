@@ -25,12 +25,23 @@
             text-align: center;
             font-size: 2em;
         }
+
+        #scores {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            padding: 0.4em 0;
+        }
     </style>
 </head>
 
 <body>
     <div id="header">
         <div id="title">FlapJack</div>
+        <div id="scores">
+            <div>Best: <span id="bestScore">0</span></div>
+            <div>Your: <span id="yourScore">0</span></div>
+        </div>
     </div>
     <canvas id="canvas" width="431" height="768"></canvas>
 
@@ -38,6 +49,8 @@
         const birdWidth = 51;
         const birdHeight = 36;
         const birdStartX = 50;
+        const birdNum = 3;
+        const birdAnimDelay = 10;  // For smooth animation, should be a multiple of the birdNum, then add 1.
         const gravity = 3;
         const antiGravity = 3;
         const flapHeight = 55;
@@ -50,23 +63,46 @@
         const pipeYOffset = 200;
         const pipeSpeed = 2;
 
-        let flapCount = 10;
-        let flyHeight = (canvas.height / 2) - (birdHeight / 2);
+        let flapCount;
+        let flyHeight;
+        let pipeXY;
+        let frameCount;
+        let currBird;
 
-        let pipePos = canvas.width;  // TODO: Rename to pipePosX OR considate for easier loop handling
-        let pipePos2 = canvas.width + ((canvas.width / 2) + (pipeWidth / 2));
-        let pipeYCenter = getNewPipeYCenter();  // TODO: Rename var to pipeYUpper and function to getNewPipeYUpper OR consolidate
-        let pipeYCenter2 = getNewPipeYCenter();
+        let currScore = 0;
+        let bestScoreSoFar = 0;
 
-        function getNewPipeYCenter() {
-            return (
-                (canvas.height / 2)  // TODO: Remove first and last operands -- they cancel out and are just noise.
-                - Math.round(Math.random() * pipeGap)  // Then get random amount for the gap.
-                - pipeHeight
-            );
+        let running;
+
+        function getNewPipeYPos() {
+            return (-1 * Math.round(Math.random() * pipeGap));  // Then get random amount for the gap.
+        }
+
+        function setup() {
+            // Bird vars
+            flapCount = 10;
+            flyHeight = (canvas.height / 2) - (birdHeight / 2);
+            currBird = 0;
+
+            // Pipe vars
+            let pipeXPos = canvas.width;
+            let pipeXPos2 = canvas.width + ((canvas.width / 2) + (pipeWidth / 2));
+            let pipeYPos = getNewPipeYPos();  // TODO: Rename var to pipeYUpper and function to getNewPipeYUpper OR consolidate
+            let pipeYPos2 = getNewPipeYPos();
+
+            pipeXY = [
+                [pipeXPos, pipeYPos],
+                [pipeXPos2, pipeYPos2],
+            ];
+
+            frameCount = 0;
+            currScore = 0;
+            running = false;
         }
 
         function loop() {
+            frameCount++;
+
             // Background
             ctx.drawImage(img,
                 0, 0,
@@ -76,72 +112,88 @@
             );
 
             // Bird flight
-            if (flapCount < flapDuration) {
-                if (flyHeight > 0) {
-                    flyHeight -= antiGravity;
+            if (running) {
+                if (flapCount < flapDuration) {
+                    if (flyHeight > 0) {
+                        flyHeight -= antiGravity;
+                    }
+                    flapCount++;
                 }
-                flapCount++;
+                else if (flyHeight < canvas.height - birdHeight) {
+                    flyHeight += gravity;
+                }
+
+                currBird = (frameCount % birdAnimDelay) % birdNum;
             }
-            else if (flyHeight < canvas.height - birdHeight) {
-                flyHeight += gravity;
-            }
+
             // Bird
             ctx.drawImage(img,
-                canvas.width + 1, 0,
+                canvas.width + 1, currBird * birdHeight,
                 birdWidth, birdHeight,
                 birdStartX, flyHeight,
                 birdWidth, birdHeight
             );
 
             // TODO: Combine pipes for less copy/paste/etc. Maybe loop?
-            // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
-            if (pipePos > -pipeWidth) {
-                pipePos -= pipeSpeed;
-            }
-            else {
-                pipePos = canvas.width;
-                pipeYCenter = getNewPipeYCenter();
-            }
-            // Upper pipe 1
-            ctx.drawImage(img,
-                canvas.width + 1, (birdHeight * 3) + 1,
-                pipeWidth, pipeHeight,
-                pipePos, pipeYCenter,
-                pipeWidth, pipeHeight
-            );
-            // Lower pipe 1
-            ctx.drawImage(img,
-                canvas.width + pipeWidth + 1, (birdHeight * 3) + 1,
-                pipeWidth, pipeHeight,
-                pipePos, pipeHeight + pipeGap + pipeYCenter,
-                pipeWidth, pipeHeight
-            );
+            for (let i = 0; i < pipeXY.length; i++) {
+                // Pull out data into local variables for readability.
+                // Remember to write any changed values back in, later!
+                let xPos = pipeXY[i][0];
+                let yPos = pipeXY[i][1];
 
-            // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
-            if (pipePos2 > -pipeWidth) {
-                pipePos2 -= pipeSpeed;
+                // If not yet off the screen, scroll it along. Else, reset it to the right and get new random gap.
+                // if (running) {
+                    if (xPos > -pipeWidth) {
+                        xPos -= pipeSpeed;
+                    }
+                    else {
+                        xPos = canvas.width;
+                        yPos = getNewPipeYPos();
+                        currScore += 1;
+                        yourScore.innerHTML = currScore;
+                        if (currScore > bestScoreSoFar) {
+                            bestScoreSoFar = currScore;
+                            bestScore.innerHTML = bestScoreSoFar;
+                        }
+                    }
+                // }
+                // Upper pipe
+                ctx.drawImage(img,
+                    canvas.width + 1, (birdHeight * 3) + 1,
+                    pipeWidth, pipeHeight,
+                    xPos, yPos,
+                    pipeWidth, pipeHeight
+                );
+                // Lower pipe
+                let lowerPipeTop = pipeHeight + pipeGap + yPos;
+                ctx.drawImage(img,
+                    canvas.width + pipeWidth + 1, (birdHeight * 3) + 1,
+                    pipeWidth, pipeHeight,
+                    xPos, lowerPipeTop,
+                    pipeWidth, pipeHeight
+                );
+
+                // Write changed values back into the data structure.
+                if (running) {
+                    pipeXY[i][0] = xPos;
+                    pipeXY[i][1] = yPos;
+                }
+
+                // Collision?
+                if (xPos < birdStartX + birdWidth) {
+                    if (yPos + pipeHeight > flyHeight || lowerPipeTop < flyHeight + birdHeight)
+                    {
+                        // console.log("COLLISION!");
+                        // setup();
+                        running = false;
+                    }
+                }
             }
-            else {
-                pipePos2 = canvas.width;
-                pipeYCenter2 = getNewPipeYCenter();
-            }
-            // Upper pipe 2
-            ctx.drawImage(img,
-                canvas.width + 1, (birdHeight * 3) + 1,
-                pipeWidth, pipeHeight,
-                pipePos2, pipeYCenter2,
-                pipeWidth, pipeHeight
-            );
-            // Lower pipe 2
-            ctx.drawImage(img,
-                canvas.width + pipeWidth + 1, (birdHeight * 3) + 1,
-                pipeWidth, pipeHeight,
-                pipePos2, pipeHeight + pipeGap + pipeYCenter2,
-                pipeWidth, pipeHeight
-            );
 
             window.requestAnimationFrame(loop);
         }
+
+        setup();
 
         let ctx = canvas.getContext('2d');
         const img = new Image();
@@ -152,6 +204,10 @@
         window.onkeydown = function (evt) {
             if (evt.code == "Space") {
                 if (flyHeight > 0) flapCount = 0;
+                if (!running) {
+                    setup();
+                    running = true;
+                }
             }
         }
 
